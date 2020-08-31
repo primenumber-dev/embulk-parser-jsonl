@@ -20,12 +20,11 @@ module Embulk
 
         return {} if rows.size <= 3
 
-        array_of_hash = Array(rows)
-        if array_of_hash.empty?
+        if rows.empty?
           raise "SchemaGuess Can't guess schema from no records"
         end
-        column_names = array_of_hash.map(&:keys).flatten.uniq
-        samples = array_of_hash.to_a.map { |hash| column_names.map { |name| hash[name] } }
+        column_names = rows.map(&:keys).flatten.uniq
+        samples = rows.to_a.map { |hash| column_names.map { |name| hash[name] } }
 
         columns = Embulk::Guess::SchemaGuess.from_array_records(column_names, samples).map do |c|
           column = { name: c.name, type: c.type }

@@ -18,7 +18,8 @@ module Embulk
           rows << JSON.parse(line)
         end
 
-        return {} if rows.size <= 3
+        min_rows_for_guess = config.fetch("parser", {}).fetch("min_rows_for_guess", 4)
+        return {} if rows.size < min_rows_for_guess
 
         if rows.empty?
           raise "SchemaGuess Can't guess schema from no records"

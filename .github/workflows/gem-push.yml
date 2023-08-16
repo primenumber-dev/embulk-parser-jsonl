@@ -25,15 +25,11 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 1.8
-      - name: Build Gem & Put it into './pkg' Directory
+      - name: Build Gem
         run: ./gradlew gem
-      - name: Set up JRuby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: jruby
       - name: push gem
         uses: trocco-io/push-gem-to-gpr-action@v1
         with:
-          language: java
+          language: ruby
           gem-path: "./pkg/*.gem"
           github-token: "${{ secrets.GITHUB_TOKEN }}"

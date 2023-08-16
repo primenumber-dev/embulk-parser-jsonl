@@ -1,7 +1,7 @@
 
 Gem::Specification.new do |spec|
   spec.name          = "embulk-parser-jsonl"
-  spec.version       = "0.2.3"
+  spec.version       = "0.2.3.pre"
   spec.authors       = ["Shunsuke Mikami"]
   spec.summary       = "Jsonl parser plugin for Embulk"
   spec.description   = "Parses Jsonl files read by other file input plugins."

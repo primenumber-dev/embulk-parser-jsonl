@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - '*'
+      - 'v*'
 
 jobs:
   build:
@@ -22,6 +22,4 @@ jobs:
       - name: push gem
         uses: trocco-io/push-gem-to-gpr-action@v1
         with:
-          language: java
-          gem-path: "./build/gems/*.gem"
           github-token: "${{ secrets.GITHUB_TOKEN }}"

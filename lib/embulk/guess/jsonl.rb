@@ -6,7 +6,6 @@ module Embulk
     # $ embulk guess -g "jsonl" partial-config.yml
 
     class Jsonl < TextGuessPlugin # TODO should use GuessPlugin instead of LineGuessPlugin
-      p "DEBUG Parser Jsonl"
       Plugin.register_guess("jsonl", self)
 
       def guess_text(config, sample_text)

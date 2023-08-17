@@ -5,16 +5,17 @@ module Embulk
   module Guess
     # $ embulk guess -g "jsonl" partial-config.yml
 
-    class Jsonl < TextGuessPlugin # TODO should use GuessPlugin instead of LineGuessPlugin
+    class Jsonl < TextGuessPlugin
       Plugin.register_guess("jsonl", self)
 
       def guess_text(config, sample_text)
-        #return {} unless config.fetch("parser", {}).fetch("type", "jsonl") == "jsonl"
+        return {} unless config.dig("parser", "type") == "jsonl"
 
         rows = []
 
-        columns = {}
-        sample_text.split("\n").each do |line|
+        newline_type = config.fetch("parser", {}).fetch("newline", "LF")
+        newline_char = newline_character(newline_type)
+        sample_text.split(newline_char).each do |line|
           next if line.strip.empty?
           rows << JSON.parse(line)
         end
@@ -36,6 +37,21 @@ module Embulk
         parser_guessed = {"type" => "jsonl"}
         parser_guessed["columns"] = columns
         return {"parser" => parser_guessed}
+      end
+
+      private
+
+      def newline_character(newline_type)
+        case newline_type
+        when "LF"
+          "\n"
+        when "CR"
+          "\r"
+        when "CRLF"
+          "\r\n"
+        else
+          "\n"
+        end
       end
     end
   end

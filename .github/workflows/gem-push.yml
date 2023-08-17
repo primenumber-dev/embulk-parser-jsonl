@@ -19,7 +19,6 @@ jobs:
     permissions:
       packages: write
       contents: read
-    if: ${{ github.event_name == 'workflow_dispatch' || contains(github.ref, 'refs/tags/') }}
     steps:
       - uses: actions/checkout@v2
       - name: Set up Ruby 2.7

@@ -13,7 +13,7 @@ module Embulk
 
         rows = []
 
-        newline_type = config.fetch("parser", {}).fetch("newline", "LF")
+        newline_type = config.fetch("parser", {}).fetch("newline", "CRLF")
         newline_char = newline_character(newline_type)
         sample_text.split(newline_char).each do |line|
           next if line.strip.empty?
@@ -43,14 +43,14 @@ module Embulk
 
       def newline_character(newline_type)
         case newline_type
+        when "CRLF"
+          "\r\n"
         when "LF"
           "\n"
         when "CR"
           "\r"
-        when "CRLF"
-          "\r\n"
         else
-          "\n"
+          "\r\n"
         end
       end
     end

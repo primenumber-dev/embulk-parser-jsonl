@@ -226,7 +226,7 @@ public class TestJsonlParserPlugin
     private ConfigSource getConfigFromYamlFile(File yamlFile)
             throws IOException
     {
-        ConfigLoader loader = new ConfigLoader(Exec.getModelManager());
+        ConfigLoader loader = new ConfigLoader(runtime.getModelManager());
         return loader.fromYamlFile(yamlFile);
     }
 

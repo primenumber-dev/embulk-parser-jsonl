@@ -1,5 +1,4 @@
 plugins {
-    id "com.jfrog.bintray" version "1.1"
     id "com.github.jruby-gradle.base" version "0.1.5"
     id "com.palantir.git-version" version "0.13.0"
     id "java"
@@ -8,7 +7,6 @@ plugins {
 import com.github.jrubygradle.JRubyExec
 repositories {
     mavenCentral()
-    jcenter()
 }
 configurations {
     provided
@@ -27,13 +25,28 @@ compileJava.options.encoding = 'UTF-8' // source encoding
 sourceCompatibility = 1.7
 targetCompatibility = 1.7
 
+sourceSets {
+    main {
+        compileClasspath = compileClasspath + configurations.provided
+    }
+    test {
+        compileClasspath = compileClasspath + configurations.provided
+        runtimeClasspath = runtimeClasspath + configurations.provided
+    }
+}
+
 dependencies {
-    compile  "org.embulk:embulk-core:0.8.8"
-    provided "org.embulk:embulk-core:0.8.8"
+    compile "org.embulk:embulk-api:0.10.29"
+    compile "org.embulk:embulk-spi:0.10.29"
+
+    provided "org.embulk:embulk-api:0.10.29"
+    provided "org.embulk:embulk-spi:0.10.29"
+    provided "org.embulk:embulk-core:0.10.29"
 
     testCompile "junit:junit:4.+"
-    testCompile  "org.embulk:embulk-core:0.8.8:tests"
-    testCompile  "org.embulk:embulk-standards:0.8.8"
+    testCompile "org.embulk:embulk-core:0.10.29:tests"
+    testCompile "org.embulk:embulk-deps:0.10.29"
+    testCompile "org.jruby:jruby-complete:9.1.15.0"
 }
 
 task classpath(type: Copy, dependsOn: ["jar"]) {

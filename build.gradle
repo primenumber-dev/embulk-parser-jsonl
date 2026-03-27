@@ -3,6 +3,7 @@ plugins {
     id "com.palantir.git-version" version "0.13.0"
     id "java"
     id "jacoco"
+    id "com.diffplug.spotless" version "6.11.0"
 }
 import com.github.jrubygradle.JRubyExec
 repositories {
@@ -22,8 +23,8 @@ version = {
 }()
 
 compileJava.options.encoding = 'UTF-8' // source encoding
-sourceCompatibility = 1.7
-targetCompatibility = 1.7
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 sourceSets {
     main {
@@ -67,9 +68,11 @@ task gemPush(type: JRubyExec, dependsOn: ["gem"]) {
     script "pkg/${project.name}-${project.version}.gem"
 }
 
-task "package"(dependsOn: ["gemspec", "classpath"]) << {
-    println "> Build succeeded."
-    println "> You can run embulk with '-L ${file(".").absolutePath}' argument."
+task "package"(dependsOn: ["gemspec", "classpath"]) {
+    doLast {
+        println "> Build succeeded."
+        println "> You can run embulk with '-L ${file(".").absolutePath}' argument."
+    }
 }
 
 task gemspec {
@@ -98,3 +101,13 @@ end
     }
 }
 clean { delete "${project.name}.gemspec" }
+
+spotless {
+    java {
+        target 'src/**/*.java'
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}

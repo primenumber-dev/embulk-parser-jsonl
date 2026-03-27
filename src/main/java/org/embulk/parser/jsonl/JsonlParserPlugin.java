@@ -1,9 +1,12 @@
 package org.embulk.parser.jsonl;
 
+import static org.msgpack.value.ValueFactory.newString;
+
 import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.util.Map;
 import org.embulk.config.Config;
 import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigException;
@@ -29,197 +32,180 @@ import org.embulk.spi.util.Timestamps;
 import org.msgpack.value.Value;
 import org.slf4j.Logger;
 
-import java.util.Map;
+public class JsonlParserPlugin implements ParserPlugin {
+  @Deprecated
+  public interface JsonlColumnOption extends Task {
+    @Config("type")
+    @ConfigDefault("null")
+    Optional<Type> getType();
+  }
 
-import static org.msgpack.value.ValueFactory.newString;
+  public interface TypecastColumnOption extends Task {
+    @Config("typecast")
+    @ConfigDefault("null")
+    public Optional<Boolean> getTypecast();
+  }
 
-public class JsonlParserPlugin
-        implements ParserPlugin
-{
+  public interface PluginTask extends Task, LineDecoder.DecoderTask, TimestampParser.Task {
+    @Config("columns")
+    @ConfigDefault("null")
+    Optional<SchemaConfig> getSchemaConfig();
+
+    @Config("schema")
+    @ConfigDefault("null")
     @Deprecated
-    public interface JsonlColumnOption
-            extends Task
-    {
-        @Config("type")
-        @ConfigDefault("null")
-        Optional<Type> getType();
+    Optional<SchemaConfig> getOldSchemaConfig();
+
+    @Config("stop_on_invalid_record")
+    @ConfigDefault("false")
+    boolean getStopOnInvalidRecord();
+
+    @Config("default_typecast")
+    @ConfigDefault("true")
+    Boolean getDefaultTypecast();
+
+    @Config("column_options")
+    @ConfigDefault("{}")
+    @Deprecated
+    Map<String, JsonlColumnOption> getColumnOptions();
+  }
+
+  private final Logger log;
+
+  private String line = null;
+  private long lineNumber = 0;
+  private Map<String, Value> columnNameValues;
+
+  public JsonlParserPlugin() {
+    this.log = Exec.getLogger(JsonlParserPlugin.class);
+  }
+
+  @Override
+  public void transaction(ConfigSource configSource, Control control) {
+    PluginTask task = configSource.loadConfig(PluginTask.class);
+
+    if (!task.getColumnOptions().isEmpty()) {
+      log.warn(
+          "embulk-parser-jsonl: \"column_options\" option is deprecated, specify type directly to \"columns\" option with typecast: true (default: true).");
     }
 
-    public interface TypecastColumnOption
-            extends Task
-    {
-        @Config("typecast")
-        @ConfigDefault("null")
-        public Optional<Boolean> getTypecast();
+    SchemaConfig schemaConfig = getSchemaConfig(task);
+    ImmutableList.Builder<Column> columns = ImmutableList.builder();
+    for (int i = 0; i < schemaConfig.getColumnCount(); i++) {
+      ColumnConfig columnConfig = schemaConfig.getColumn(i);
+      Type type = getType(task, columnConfig);
+      columns.add(new Column(i, columnConfig.getName(), type));
+    }
+    control.run(task.dump(), new Schema(columns.build()));
+  }
+
+  private static Type getType(PluginTask task, ColumnConfig columnConfig) {
+    JsonlColumnOption columnOption =
+        columnOptionOf(task.getColumnOptions(), columnConfig.getName());
+    return columnOption.getType().or(columnConfig.getType());
+  }
+
+  // this method is to keep the backward compatibility of 'schema' option.
+  private SchemaConfig getSchemaConfig(PluginTask task) {
+    if (task.getOldSchemaConfig().isPresent()) {
+      log.warn(
+          "Please use 'columns' option instead of 'schema' because the 'schema' option is deprecated. The next version will stop 'schema' option support.");
     }
 
-    public interface PluginTask
-            extends Task, LineDecoder.DecoderTask, TimestampParser.Task
-    {
-        @Config("columns")
-        @ConfigDefault("null")
-        Optional<SchemaConfig> getSchemaConfig();
-
-        @Config("schema")
-        @ConfigDefault("null")
-        @Deprecated
-        Optional<SchemaConfig> getOldSchemaConfig();
-
-        @Config("stop_on_invalid_record")
-        @ConfigDefault("false")
-        boolean getStopOnInvalidRecord();
-
-        @Config("default_typecast")
-        @ConfigDefault("true")
-        Boolean getDefaultTypecast();
-
-        @Config("column_options")
-        @ConfigDefault("{}")
-        @Deprecated
-        Map<String, JsonlColumnOption> getColumnOptions();
+    if (task.getSchemaConfig().isPresent()) {
+      return task.getSchemaConfig().get();
+    } else if (task.getOldSchemaConfig().isPresent()) {
+      return task.getOldSchemaConfig().get();
+    } else {
+      throw new ConfigException("Attribute 'columns' is required but not set");
     }
+  }
 
-    private final Logger log;
+  @Override
+  public void run(TaskSource taskSource, Schema schema, FileInput input, PageOutput output) {
+    PluginTask task = taskSource.loadTask(PluginTask.class);
 
-    private String line = null;
-    private long lineNumber = 0;
-    private Map<String, Value> columnNameValues;
+    setColumnNameValues(schema);
 
-    public JsonlParserPlugin()
-    {
-        this.log = Exec.getLogger(JsonlParserPlugin.class);
-    }
+    final SchemaConfig schemaConfig = getSchemaConfig(task);
+    final TimestampParser[] timestampParsers =
+        Timestamps.newTimestampColumnParsers(task, schemaConfig);
+    final LineDecoder decoder = newLineDecoder(input, task);
+    final JsonParser jsonParser = newJsonParser();
+    final boolean stopOnInvalidRecord = task.getStopOnInvalidRecord();
 
-    @Override
-    public void transaction(ConfigSource configSource, Control control)
-    {
-        PluginTask task = configSource.loadConfig(PluginTask.class);
+    try (final PageBuilder pageBuilder =
+        new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
+      ColumnVisitorImpl visitor =
+          new ColumnVisitorImpl(task, schema, pageBuilder, timestampParsers);
 
-        if (! task.getColumnOptions().isEmpty()) {
-            log.warn("embulk-parser-jsonl: \"column_options\" option is deprecated, specify type directly to \"columns\" option with typecast: true (default: true).");
-        }
+      while (decoder
+          .nextFile()) { // TODO this implementation should be improved with new JsonParser API on
+        // Embulk v0.8.3
+        lineNumber = 0;
 
-        SchemaConfig schemaConfig = getSchemaConfig(task);
-        ImmutableList.Builder<Column> columns = ImmutableList.builder();
-        for (int i = 0; i < schemaConfig.getColumnCount(); i++) {
-            ColumnConfig columnConfig = schemaConfig.getColumn(i);
-            Type type = getType(task, columnConfig);
-            columns.add(new Column(i, columnConfig.getName(), type));
-        }
-        control.run(task.dump(), new Schema(columns.build()));
-    }
+        while ((line = decoder.poll()) != null) {
+          lineNumber++;
 
-    private static Type getType(PluginTask task, ColumnConfig columnConfig)
-    {
-        JsonlColumnOption columnOption = columnOptionOf(task.getColumnOptions(), columnConfig.getName());
-        return columnOption.getType().or(columnConfig.getType());
-    }
+          try {
+            Value value = jsonParser.parse(line);
 
-    // this method is to keep the backward compatibility of 'schema' option.
-    private SchemaConfig getSchemaConfig(PluginTask task)
-    {
-        if (task.getOldSchemaConfig().isPresent()) {
-            log.warn("Please use 'columns' option instead of 'schema' because the 'schema' option is deprecated. The next version will stop 'schema' option support.");
-        }
-
-        if (task.getSchemaConfig().isPresent()) {
-            return task.getSchemaConfig().get();
-        }
-        else if (task.getOldSchemaConfig().isPresent()) {
-            return task.getOldSchemaConfig().get();
-        }
-        else {
-            throw new ConfigException("Attribute 'columns' is required but not set");
-        }
-    }
-
-    @Override
-    public void run(TaskSource taskSource, Schema schema, FileInput input, PageOutput output)
-    {
-        PluginTask task = taskSource.loadTask(PluginTask.class);
-
-        setColumnNameValues(schema);
-
-        final SchemaConfig schemaConfig = getSchemaConfig(task);
-        final TimestampParser[] timestampParsers = Timestamps.newTimestampColumnParsers(task, schemaConfig);
-        final LineDecoder decoder = newLineDecoder(input, task);
-        final JsonParser jsonParser = newJsonParser();
-        final boolean stopOnInvalidRecord = task.getStopOnInvalidRecord();
-
-        try (final PageBuilder pageBuilder = new PageBuilder(Exec.getBufferAllocator(), schema, output)) {
-            ColumnVisitorImpl visitor = new ColumnVisitorImpl(task, schema, pageBuilder, timestampParsers);
-
-            while (decoder.nextFile()) { // TODO this implementation should be improved with new JsonParser API on Embulk v0.8.3
-                lineNumber = 0;
-
-                while ((line = decoder.poll()) != null) {
-                    lineNumber++;
-
-                    try {
-                        Value value = jsonParser.parse(line);
-
-                        if (!value.isMapValue()) {
-                            throw new JsonRecordValidateException("Json string is not representing map value.");
-                        }
-
-                        final Map<Value, Value> record = value.asMapValue().map();
-                        for (Column column : schema.getColumns()) {
-                            Value v = record.get(getColumnNameValue(column));
-                            visitor.setValue(v);
-                            column.visit(visitor);
-                        }
-
-                        pageBuilder.addRecord();
-                    }
-                    catch (JsonRecordValidateException | JsonParseException e) {
-                        if (stopOnInvalidRecord) {
-                            throw new DataException(String.format("Invalid record at line %d: %s", lineNumber, line), e);
-                        }
-                        log.warn(String.format("Skipped line %d (%s): %s", lineNumber, e.getMessage(), line));
-                    }
-                }
+            if (!value.isMapValue()) {
+              throw new JsonRecordValidateException("Json string is not representing map value.");
             }
 
-            pageBuilder.finish();
+            final Map<Value, Value> record = value.asMapValue().map();
+            for (Column column : schema.getColumns()) {
+              Value v = record.get(getColumnNameValue(column));
+              visitor.setValue(v);
+              column.visit(visitor);
+            }
+
+            pageBuilder.addRecord();
+          } catch (JsonRecordValidateException | JsonParseException e) {
+            if (stopOnInvalidRecord) {
+              throw new DataException(
+                  String.format("Invalid record at line %d: %s", lineNumber, line), e);
+            }
+            log.warn(String.format("Skipped line %d (%s): %s", lineNumber, e.getMessage(), line));
+          }
         }
-    }
+      }
 
-    private void setColumnNameValues(Schema schema)
-    {
-        ImmutableMap.Builder<String, Value> builder = ImmutableMap.builder();
-        for (Column column : schema.getColumns()) {
-            String name = column.getName();
-            builder.put(name, newString(name));
-        }
-        columnNameValues = builder.build();
+      pageBuilder.finish();
     }
+  }
 
-    private Value getColumnNameValue(Column column)
-    {
-        return columnNameValues.get(column.getName());
+  private void setColumnNameValues(Schema schema) {
+    ImmutableMap.Builder<String, Value> builder = ImmutableMap.builder();
+    for (Column column : schema.getColumns()) {
+      String name = column.getName();
+      builder.put(name, newString(name));
     }
+    columnNameValues = builder.build();
+  }
 
-    public LineDecoder newLineDecoder(FileInput input, PluginTask task)
-    {
-        return new LineDecoder(input, task);
-    }
+  private Value getColumnNameValue(Column column) {
+    return columnNameValues.get(column.getName());
+  }
 
-    public JsonParser newJsonParser()
-    {
-        return new JsonParser();
-    }
+  public LineDecoder newLineDecoder(FileInput input, PluginTask task) {
+    return new LineDecoder(input, task);
+  }
 
-    private static JsonlColumnOption columnOptionOf(Map<String, JsonlColumnOption> columnOptions, String columnName)
-    {
-        return Optional.fromNullable(columnOptions.get(columnName)).or(
-                // default column option
-                new Supplier<JsonlColumnOption>()
-                {
-                    public JsonlColumnOption get()
-                    {
-                        return Exec.newConfigSource().loadConfig(JsonlColumnOption.class);
-                    }
-                });
-    }
+  public JsonParser newJsonParser() {
+    return new JsonParser();
+  }
 
+  private static JsonlColumnOption columnOptionOf(
+      Map<String, JsonlColumnOption> columnOptions, String columnName) {
+    return Optional.fromNullable(columnOptions.get(columnName))
+        .or(
+            // default column option
+            new Supplier<JsonlColumnOption>() {
+              public JsonlColumnOption get() {
+                return Exec.newConfigSource().loadConfig(JsonlColumnOption.class);
+              }
+            });
+  }
 }

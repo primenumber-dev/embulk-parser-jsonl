@@ -58,10 +58,8 @@ dependencies {
 
 spotless {
     java {
-        target 'src/**/*.java'
-        googleJavaFormat()
+        importOrder()
         removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
+        googleJavaFormat()
     }
 }

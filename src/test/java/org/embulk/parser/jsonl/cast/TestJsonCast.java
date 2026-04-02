@@ -57,9 +57,9 @@ public class TestJsonCast {
   }
 
   @Test
-  public void asTimestamp() {
+  public void asInstant() {
     try {
-      JsonCast.asTimestamp(value);
+      JsonCast.asInstant(value);
       fail();
     } catch (Throwable t) {
       assertTrue(t instanceof DataException);

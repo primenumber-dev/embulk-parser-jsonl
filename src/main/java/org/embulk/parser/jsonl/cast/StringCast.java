@@ -1,21 +1,26 @@
 package org.embulk.parser.jsonl.cast;
 
-import com.google.common.collect.ImmutableSet;
+import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParseException;
-import org.embulk.spi.time.TimestampParser;
+import org.embulk.util.timestamp.TimestampFormatter;
 
 public class StringCast {
   // copy from csv plugin
-  public static final ImmutableSet<String> TRUE_STRINGS =
-      ImmutableSet.of(
-          "true", "True", "TRUE", "yes", "Yes", "YES", "t", "T", "y", "Y", "on", "On", "ON", "1");
+  public static final Set<String> TRUE_STRINGS =
+      new HashSet<>(
+          Arrays.asList(
+              "true", "True", "TRUE", "yes", "Yes", "YES", "t", "T", "y", "Y", "on", "On", "ON",
+              "1"));
 
-  public static final ImmutableSet<String> FALSE_STRINGS =
-      ImmutableSet.of(
-          "false", "False", "FALSE", "no", "No", "NO", "f", "F", "n", "N", "off", "Off", "OFF",
-          "0");
+  public static final Set<String> FALSE_STRINGS =
+      new HashSet<>(
+          Arrays.asList(
+              "false", "False", "FALSE", "no", "No", "NO", "f", "F", "n", "N", "off", "Off", "OFF",
+              "0"));
 
   private StringCast() {}
 
@@ -53,10 +58,10 @@ public class StringCast {
     return value;
   }
 
-  public static Timestamp asTimestamp(String value, TimestampParser parser) throws DataException {
+  public static Instant asInstant(String value, TimestampFormatter formatter) throws DataException {
     try {
-      return parser.parse(value);
-    } catch (TimestampParseException ex) {
+      return formatter.parse(value);
+    } catch (DateTimeParseException ex) {
       throw new DataException(buildErrorMessage("timestamp", value), ex);
     }
   }

@@ -4,32 +4,27 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.embulk.EmbulkTestRuntime;
+import java.time.Instant;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParser;
-import org.joda.time.DateTimeZone;
+import org.embulk.util.timestamp.TimestampFormatter;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.msgpack.value.MapValue;
-import org.msgpack.value.Value;
 import org.msgpack.value.ValueFactory;
 
 public class TestColumnCaster {
-  @Rule public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
   public MapValue mapValue;
   public DataException thrown;
-  public TimestampParser parser;
+  public TimestampFormatter formatter;
 
   @Before
   public void createResource() {
     thrown = new DataException("any");
-    Value[] kvs = new Value[2];
+    org.msgpack.value.Value[] kvs = new org.msgpack.value.Value[2];
     kvs[0] = ValueFactory.newString("k");
     kvs[1] = ValueFactory.newString("v");
     mapValue = ValueFactory.newMap(kvs);
-    parser = new TimestampParser("%Y-%m-%d %H:%M:%S.%N", DateTimeZone.UTC);
+    formatter = TimestampFormatter.builder("%Y-%m-%d %H:%M:%S.%N", true).build();
   }
 
   @Test
@@ -177,9 +172,9 @@ public class TestColumnCaster {
   }
 
   @Test
-  public void asTimestampFromBoolean() {
+  public void asInstantFromBoolean() {
     try {
-      ColumnCaster.asTimestamp(ValueFactory.newBoolean(true), parser);
+      ColumnCaster.asInstant(ValueFactory.newBoolean(true), formatter);
       fail();
     } catch (Throwable t) {
       assertTrue(t instanceof DataException);
@@ -187,28 +182,28 @@ public class TestColumnCaster {
   }
 
   @Test
-  public void asTimestampFromInteger() {
-    assertEquals(1, ColumnCaster.asTimestamp(ValueFactory.newInteger(1), parser).getEpochSecond());
+  public void asInstantFromInteger() {
+    assertEquals(1, ColumnCaster.asInstant(ValueFactory.newInteger(1), formatter).getEpochSecond());
   }
 
   @Test
-  public void asTimestampFromFloat() {
-    Timestamp expected = Timestamp.ofEpochSecond(1463084053, 500000000);
-    assertEquals(expected, ColumnCaster.asTimestamp(ValueFactory.newFloat(1463084053.5), parser));
+  public void asInstantFromFloat() {
+    Instant expected = Instant.ofEpochSecond(1463084053, 500000000);
+    assertEquals(expected, ColumnCaster.asInstant(ValueFactory.newFloat(1463084053.5), formatter));
   }
 
   @Test
-  public void asTimestampFromString() {
-    Timestamp expected = Timestamp.ofEpochSecond(1463084053, 500000000);
+  public void asInstantFromString() {
+    Instant expected = Instant.ofEpochSecond(1463084053, 500000000);
     assertEquals(
         expected,
-        ColumnCaster.asTimestamp(ValueFactory.newString("2016-05-12 20:14:13.5"), parser));
+        ColumnCaster.asInstant(ValueFactory.newString("2016-05-12 20:14:13.5"), formatter));
   }
 
   @Test
-  public void asTimestampFromJson() {
+  public void asInstantFromJson() {
     try {
-      ColumnCaster.asTimestamp(mapValue, parser);
+      ColumnCaster.asInstant(mapValue, formatter);
       fail();
     } catch (Throwable t) {
       assertTrue(t instanceof DataException);

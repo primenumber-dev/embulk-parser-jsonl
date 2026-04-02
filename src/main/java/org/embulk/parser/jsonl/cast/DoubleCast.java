@@ -1,7 +1,7 @@
 package org.embulk.parser.jsonl.cast;
 
+import java.time.Instant;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
 
 public class DoubleCast {
   private DoubleCast() {}
@@ -26,9 +26,9 @@ public class DoubleCast {
     return String.valueOf(value);
   }
 
-  public static Timestamp asTimestamp(double value) throws DataException {
+  public static Instant asInstant(double value) throws DataException {
     long epochSecond = (long) value;
-    long nanoAdjustMent = (long) ((value - epochSecond) * 1000000000);
-    return Timestamp.ofEpochSecond(epochSecond, nanoAdjustMent);
+    long nanoAdjustment = (long) ((value - epochSecond) * 1000000000);
+    return Instant.ofEpochSecond(epochSecond, nanoAdjustment);
   }
 }

@@ -37,9 +37,9 @@ public class TestBooleanCast {
   }
 
   @Test
-  public void asTimestamp() {
+  public void asInstant() {
     try {
-      BooleanCast.asTimestamp(true);
+      BooleanCast.asInstant(true);
       fail();
     } catch (Throwable t) {
       assertTrue(t instanceof DataException);

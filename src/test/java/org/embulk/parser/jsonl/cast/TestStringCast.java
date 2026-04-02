@@ -4,21 +4,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.embulk.EmbulkTestRuntime;
+import java.time.Instant;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParser;
-import org.joda.time.DateTimeZone;
-import org.junit.Before;
-import org.junit.Rule;
+import org.embulk.util.timestamp.TimestampFormatter;
 import org.junit.Test;
 
 public class TestStringCast {
-  @Rule public EmbulkTestRuntime runtime = new EmbulkTestRuntime();
-
-  @Before
-  public void createResource() {}
-
   @Test
   public void asBoolean() {
     for (String str : StringCast.TRUE_STRINGS) {
@@ -71,13 +62,13 @@ public class TestStringCast {
   }
 
   @Test
-  public void asTimestamp() {
-    Timestamp expected = Timestamp.ofEpochSecond(1463084053, 123456000);
-    TimestampParser parser = new TimestampParser("%Y-%m-%d %H:%M:%S.%N", DateTimeZone.UTC);
-    assertEquals(expected, StringCast.asTimestamp("2016-05-12 20:14:13.123456", parser));
+  public void asInstant() {
+    Instant expected = Instant.ofEpochSecond(1463084053, 123456000);
+    TimestampFormatter formatter = TimestampFormatter.builder("%Y-%m-%d %H:%M:%S.%N", true).build();
+    assertEquals(expected, StringCast.asInstant("2016-05-12 20:14:13.123456", formatter));
 
     try {
-      StringCast.asTimestamp("foo", parser);
+      StringCast.asInstant("foo", formatter);
       fail();
     } catch (Throwable t) {
       assertTrue(t instanceof DataException);

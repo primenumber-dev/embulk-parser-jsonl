@@ -1,7 +1,7 @@
 package org.embulk.parser.jsonl.cast;
 
+import java.time.Instant;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
 import org.msgpack.value.Value;
 
 public class JsonCast {
@@ -27,7 +27,7 @@ public class JsonCast {
     return value.toString();
   }
 
-  public static Timestamp asTimestamp(Value value) throws DataException {
+  public static Instant asInstant(Value value) throws DataException {
     throw new DataException(buildErrorMessage("timestamp", value));
   }
 }

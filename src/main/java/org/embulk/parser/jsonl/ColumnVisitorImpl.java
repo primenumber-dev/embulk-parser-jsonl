@@ -1,34 +1,42 @@
 package org.embulk.parser.jsonl;
 
-import com.google.common.base.Optional;
+import java.time.Instant;
+import java.util.Optional;
 import org.embulk.parser.jsonl.JsonlParserPlugin.PluginTask;
 import org.embulk.parser.jsonl.JsonlParserPlugin.TypecastColumnOption;
 import org.embulk.spi.Column;
-import org.embulk.spi.ColumnConfig;
 import org.embulk.spi.ColumnVisitor;
 import org.embulk.spi.PageBuilder;
 import org.embulk.spi.Schema;
-import org.embulk.spi.SchemaConfig;
 import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParser;
+import org.embulk.util.config.ConfigMapperFactory;
+import org.embulk.util.config.units.ColumnConfig;
+import org.embulk.util.config.units.SchemaConfig;
+import org.embulk.util.timestamp.TimestampFormatter;
 import org.msgpack.core.MessageTypeException;
 import org.msgpack.value.Value;
 
 public class ColumnVisitorImpl implements ColumnVisitor {
+  private static final ConfigMapperFactory CONFIG_MAPPER_FACTORY =
+      ConfigMapperFactory.builder().addDefaultModules().build();
+
   protected final PluginTask task;
   protected final Schema schema;
   protected final PageBuilder pageBuilder;
-  protected final TimestampParser[] timestampParsers;
+  protected final TimestampFormatter[] timestampFormatters;
   protected final Boolean autoTypecasts[];
 
   protected Value value;
 
   public ColumnVisitorImpl(
-      PluginTask task, Schema schema, PageBuilder pageBuilder, TimestampParser[] timestampParsers) {
+      PluginTask task,
+      Schema schema,
+      PageBuilder pageBuilder,
+      TimestampFormatter[] timestampFormatters) {
     this.task = task;
     this.schema = schema;
     this.pageBuilder = pageBuilder;
-    this.timestampParsers = timestampParsers;
+    this.timestampFormatters = timestampFormatters;
     this.autoTypecasts = new Boolean[schema.size()];
     buildAutoTypecasts();
   }
@@ -42,8 +50,10 @@ public class ColumnVisitorImpl implements ColumnVisitor {
     if (schemaConfig.isPresent()) {
       for (ColumnConfig columnConfig : schemaConfig.get().getColumns()) {
         TypecastColumnOption columnOption =
-            columnConfig.getOption().loadConfig(TypecastColumnOption.class);
-        Boolean autoTypecast = columnOption.getTypecast().or(task.getDefaultTypecast());
+            CONFIG_MAPPER_FACTORY
+                .createConfigMapper()
+                .map(columnConfig.getOption(), TypecastColumnOption.class);
+        Boolean autoTypecast = columnOption.getTypecast().orElse(task.getDefaultTypecast());
         Column column = schema.lookupColumn(columnConfig.getName());
         this.autoTypecasts[column.getIndex()] = autoTypecast;
       }
@@ -127,13 +137,14 @@ public class ColumnVisitorImpl implements ColumnVisitor {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void timestampColumn(Column column) {
     if (isNil(value)) {
       pageBuilder.setNull(column);
     } else {
       try {
-        Timestamp timestamp = ColumnCaster.asTimestamp(value, timestampParsers[column.getIndex()]);
-        pageBuilder.setTimestamp(column, timestamp);
+        Instant instant = ColumnCaster.asInstant(value, timestampFormatters[column.getIndex()]);
+        pageBuilder.setTimestamp(column, Timestamp.ofEpochMilli(instant.toEpochMilli()));
       } catch (MessageTypeException e) {
         throw new JsonRecordValidateException(
             String.format("failed to get \"%s\" as Timestamp", value), e);
@@ -142,6 +153,7 @@ public class ColumnVisitorImpl implements ColumnVisitor {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void jsonColumn(Column column) {
     if (isNil(value)) {
       pageBuilder.setNull(column);

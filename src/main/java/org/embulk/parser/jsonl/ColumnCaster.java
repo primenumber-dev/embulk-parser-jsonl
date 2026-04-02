@@ -1,13 +1,13 @@
 package org.embulk.parser.jsonl;
 
+import java.time.Instant;
 import org.embulk.parser.jsonl.cast.BooleanCast;
 import org.embulk.parser.jsonl.cast.DoubleCast;
 import org.embulk.parser.jsonl.cast.JsonCast;
 import org.embulk.parser.jsonl.cast.LongCast;
 import org.embulk.parser.jsonl.cast.StringCast;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
-import org.embulk.spi.time.TimestampParser;
+import org.embulk.util.timestamp.TimestampFormatter;
 import org.msgpack.value.Value;
 
 class ColumnCaster {
@@ -59,17 +59,17 @@ class ColumnCaster {
     return value.toString();
   }
 
-  public static Timestamp asTimestamp(Value value, TimestampParser parser) throws DataException {
+  public static Instant asInstant(Value value, TimestampFormatter formatter) throws DataException {
     if (value.isBooleanValue()) {
-      return BooleanCast.asTimestamp(value.asBooleanValue().getBoolean());
+      return BooleanCast.asInstant(value.asBooleanValue().getBoolean());
     } else if (value.isIntegerValue()) {
-      return LongCast.asTimestamp(value.asIntegerValue().asLong());
+      return LongCast.asInstant(value.asIntegerValue().asLong());
     } else if (value.isFloatValue()) {
-      return DoubleCast.asTimestamp(value.asFloatValue().toDouble());
+      return DoubleCast.asInstant(value.asFloatValue().toDouble());
     } else if (value.isStringValue()) {
-      return StringCast.asTimestamp(value.asStringValue().asString(), parser);
+      return StringCast.asInstant(value.asStringValue().asString(), formatter);
     } else {
-      return JsonCast.asTimestamp(value);
+      return JsonCast.asInstant(value);
     }
   }
 }

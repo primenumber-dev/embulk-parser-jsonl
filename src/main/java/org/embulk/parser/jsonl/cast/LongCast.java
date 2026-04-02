@@ -1,7 +1,7 @@
 package org.embulk.parser.jsonl.cast;
 
+import java.time.Instant;
 import org.embulk.spi.DataException;
-import org.embulk.spi.time.Timestamp;
 
 public class LongCast {
   private LongCast() {}
@@ -32,7 +32,7 @@ public class LongCast {
     return String.valueOf(value);
   }
 
-  public static Timestamp asTimestamp(long value) throws DataException {
-    return Timestamp.ofEpochSecond(value);
+  public static Instant asInstant(long value) throws DataException {
+    return Instant.ofEpochSecond(value);
   }
 }

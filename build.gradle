@@ -63,3 +63,11 @@ spotless {
         googleJavaFormat()
     }
 }
+
+dependencyLocking {
+    lockAllConfigurations()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation"
+}

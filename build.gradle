@@ -1,9 +1,9 @@
 plugins {
-    id "org.embulk.embulk-plugins" version "0.6.2"
-    id "com.palantir.git-version" version "0.13.0"
     id "java"
     id "jacoco"
     id "com.diffplug.spotless" version "6.11.0"
+    id "com.palantir.git-version" version "3.4.0"
+    id "org.embulk.embulk-plugins" version "0.7.0"
 }
 repositories {
     mavenCentral()
@@ -25,6 +25,7 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 embulkPlugin {
+    group = "primenumber-dev"
     mainClass = "org.embulk.parser.jsonl.JsonlParserPlugin"
     category = "parser"
     type = "jsonl"

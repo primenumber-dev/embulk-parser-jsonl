@@ -144,7 +144,7 @@ public class ColumnVisitorImpl implements ColumnVisitor {
     } else {
       try {
         Instant instant = ColumnCaster.asInstant(value, timestampFormatters[column.getIndex()]);
-        pageBuilder.setTimestamp(column, Timestamp.ofEpochMilli(instant.toEpochMilli()));
+        pageBuilder.setTimestamp(column, Timestamp.ofInstant(instant));
       } catch (MessageTypeException e) {
         throw new JsonRecordValidateException(
             String.format("failed to get \"%s\" as Timestamp", value), e);

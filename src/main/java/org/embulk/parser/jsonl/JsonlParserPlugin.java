@@ -82,6 +82,14 @@ public class JsonlParserPlugin implements ParserPlugin {
     @Config("newline")
     @ConfigDefault("\"LF\"")
     String getNewline();
+
+    @Config("default_timezone")
+    @ConfigDefault("\"UTC\"")
+    String getDefaultTimezone();
+
+    @Config("default_timestamp_format")
+    @ConfigDefault(value = "\"%Y-%m-%d %H:%M:%S.%N %z\"")
+    String getDefaultTimestampFormat();
   }
 
   private static final Logger log = LoggerFactory.getLogger(JsonlParserPlugin.class);
@@ -233,8 +241,11 @@ public class JsonlParserPlugin implements ParserPlugin {
     for (ColumnConfig columnConfig : schemaConfig.getColumns()) {
       if (columnConfig.getType() instanceof org.embulk.spi.type.TimestampType) {
         String pattern =
-            columnConfig.getOption().get(String.class, "format", "%Y-%m-%d %H:%M:%S.%N %z");
-        formatters[i] = TimestampFormatter.builder(pattern, true).build();
+            columnConfig.getOption().get(String.class, "format", task.getDefaultTimestampFormat());
+        formatters[i] =
+            TimestampFormatter.builder(pattern, true)
+                .setDefaultZoneFromString(task.getDefaultTimezone())
+                .build();
       }
       i++;
     }

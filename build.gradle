@@ -37,6 +37,9 @@ gem {
     summary = "Jsonl parser plugin for Embulk"
     homepage = "https://github.com/shun0102/embulk-parser-jsonl"
     licenses = ["MIT"]
+    from("lib") {
+        into("lib")
+    }
 }
 
 dependencies {

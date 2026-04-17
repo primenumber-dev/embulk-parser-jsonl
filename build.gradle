@@ -50,6 +50,7 @@ dependencies {
     implementation "org.embulk:embulk-util-json:0.3.0"
     implementation "org.embulk:embulk-util-timestamp:0.2.2"
     implementation "org.embulk:embulk-util-text:0.1.1"
+    implementation "org.embulk:embulk-util-guess:0.3.0"
 
     testImplementation "junit:junit:4.+"
     testImplementation "org.embulk:embulk-api:0.10.43"

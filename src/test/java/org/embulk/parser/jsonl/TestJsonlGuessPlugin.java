@@ -36,10 +36,7 @@ public class TestJsonlGuessPlugin {
     ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
     config.setNested(
         "parser",
-        CONFIG_MAPPER_FACTORY
-            .newConfigSource()
-            .set("type", "jsonl")
-            .set("newline", "LF"));
+        CONFIG_MAPPER_FACTORY.newConfigSource().set("type", "jsonl").set("newline", "LF"));
 
     ConfigDiff result = plugin.guess(config, buffer);
 
@@ -69,10 +66,7 @@ public class TestJsonlGuessPlugin {
     ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
     config.setNested(
         "parser",
-        CONFIG_MAPPER_FACTORY
-            .newConfigSource()
-            .set("type", "jsonl")
-            .set("newline", "LF"));
+        CONFIG_MAPPER_FACTORY.newConfigSource().set("type", "jsonl").set("newline", "LF"));
 
     ConfigDiff result = plugin.guess(config, buffer);
 
@@ -90,13 +84,9 @@ public class TestJsonlGuessPlugin {
     Buffer buffer = Buffer.wrap(sampleData.getBytes(StandardCharsets.UTF_8));
 
     ConfigSource config = CONFIG_MAPPER_FACTORY.newConfigSource();
-    config
-        .setNested(
-            "parser",
-            CONFIG_MAPPER_FACTORY
-                .newConfigSource()
-                .set("type", "jsonl")
-                .set("min_rows_for_guess", 4));
+    config.setNested(
+        "parser",
+        CONFIG_MAPPER_FACTORY.newConfigSource().set("type", "jsonl").set("min_rows_for_guess", 4));
 
     ConfigDiff result = plugin.guess(config, buffer);
 

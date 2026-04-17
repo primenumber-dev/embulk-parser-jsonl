@@ -105,10 +105,7 @@ public class JsonlGuessPlugin implements GuessPlugin {
       ConfigDiff result = CONFIG_MAPPER_FACTORY.newConfigDiff();
       result.setNested(
           "parser",
-          CONFIG_MAPPER_FACTORY
-              .newConfigDiff()
-              .set("type", "jsonl")
-              .set("columns", columns));
+          CONFIG_MAPPER_FACTORY.newConfigDiff().set("type", "jsonl").set("columns", columns));
 
       return result;
     } catch (Exception e) {

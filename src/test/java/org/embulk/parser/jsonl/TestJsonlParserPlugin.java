@@ -241,6 +241,129 @@ public class TestJsonlParserPlugin {
     }
   }
 
+  @Test
+  public void testTrailingEmptyLine() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    // Simulates a file with a trailing newline: the last element "" represents the
+    // empty line
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}",
+                "")); // Empty line at the end
+
+    assertEquals(2, records.size());
+    assertEquals(true, records.get(0)[0]);
+    assertEquals(10L, records.get(0)[1]);
+    assertEquals("first", records.get(0)[2]);
+  }
+
+  @Test
+  public void testLeadingEmptyLine() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "", // Empty line at the beginning
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}"));
+
+    assertEquals(2, records.size());
+  }
+
+  @Test
+  public void testMiddleEmptyLine() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "", // Empty line in the middle
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}"));
+
+    assertEquals(2, records.size());
+  }
+
+  @Test
+  public void testMultipleConsecutiveEmptyLines() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "", // Empty line
+                "", // Empty line
+                "", // Empty line
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}"));
+
+    assertEquals(2, records.size());
+  }
+
+  @Test
+  public void testWhitespaceOnlyLines() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "   ", // Spaces only
+                "\t", // Tab only
+                "  \t  ", // Mixed whitespace
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}"));
+
+    assertEquals(2, records.size());
+  }
+
+  @Test
+  public void testOnlyEmptyLines() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema);
+
+    List<Object[]> records = runParser(config, Arrays.asList("", "   ", "\t", ""));
+
+    assertEquals(0, records.size());
+  }
+
+  @Test
+  public void testEmptyLinesWithStopOnInvalidRecord() throws Exception {
+    SchemaConfig schema =
+        schema(column("_c0", BOOLEAN), column("_c1", LONG), column("_c2", STRING));
+    ConfigSource config = config().set("columns", schema).set("stop_on_invalid_record", true);
+
+    // Empty lines should be skipped even when stop_on_invalid_record is true
+    List<Object[]> records =
+        runParser(
+            config,
+            Arrays.asList(
+                "{\"_c0\":true,\"_c1\":10,\"_c2\":\"first\"}",
+                "",
+                "{\"_c0\":false,\"_c1\":20,\"_c2\":\"second\"}"));
+
+    assertEquals(2, records.size());
+  }
+
   private ConfigSource config() {
     return CONFIG_MAPPER_FACTORY.newConfigSource();
   }

@@ -175,6 +175,11 @@ public class JsonlParserPlugin implements ParserPlugin {
           }
           lineNumber++;
 
+          // Skip empty lines
+          if (line.trim().isEmpty()) {
+            continue;
+          }
+
           try {
             Value value = jsonParser.parse(line);
 

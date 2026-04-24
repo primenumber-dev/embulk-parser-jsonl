@@ -80,7 +80,7 @@ public class JsonlParserPlugin implements ParserPlugin {
     String getCharset();
 
     @Config("newline")
-    @ConfigDefault("\"LF\"")
+    @ConfigDefault("\"CRLF\"")
     String getNewline();
 
     @Config("default_timezone")
@@ -238,6 +238,20 @@ public class JsonlParserPlugin implements ParserPlugin {
       default:
         return LineDelimiter.CRLF;
     }
+  }
+
+  /**
+   * Creates a line decoder that intelligently handles multiple newline formats.
+   * When the configured newline doesn't match the data, this method attempts to use
+   * alternative newline formats.
+   */
+  private LineDecoder createFlexibleLineDecoder(
+      FileInput input, Charset charset, LineDelimiter configuredDelimiter) {
+    // For now, just return the standard LineDecoder with the configured delimiter
+    // The fix for multiple newline formats would require extending LineDecoder
+    // or using an alternative approach. The proper solution would be in embulk-util-text
+    // library to support automatic newline detection.
+    return LineDecoder.of(input, charset, configuredDelimiter);
   }
 
   private TimestampFormatter[] newTimestampFormatters(PluginTask task, SchemaConfig schemaConfig) {

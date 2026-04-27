@@ -364,7 +364,6 @@ public class TestJsonlParserPlugin {
     assertEquals(2, records.size());
   }
 
-
   /**
    * Test case: Config specifies LF, but actual data uses CRLF. This should process all 3 lines, not
    * just the first one.
@@ -376,9 +375,9 @@ public class TestJsonlParserPlugin {
 
     // Create test data with CRLF line endings
     String testData =
-            "{\"id\":1,\"name\":\"Alice\"}\r\n"
-                    + "{\"id\":2,\"name\":\"Bob\"}\r\n"
-                    + "{\"id\":3,\"name\":\"Charlie\"}\r\n";
+        "{\"id\":1,\"name\":\"Alice\"}\r\n"
+            + "{\"id\":2,\"name\":\"Bob\"}\r\n"
+            + "{\"id\":3,\"name\":\"Charlie\"}\r\n";
 
     List<Object[]> records = runParser(config, testData);
 
@@ -403,9 +402,9 @@ public class TestJsonlParserPlugin {
 
     // Create test data with LF line endings
     String testData =
-            "{\"id\":1,\"name\":\"Alice\"}\n"
-                    + "{\"id\":2,\"name\":\"Bob\"}\n"
-                    + "{\"id\":3,\"name\":\"Charlie\"}\n";
+        "{\"id\":1,\"name\":\"Alice\"}\n"
+            + "{\"id\":2,\"name\":\"Bob\"}\n"
+            + "{\"id\":3,\"name\":\"Charlie\"}\n";
 
     List<Object[]> records = runParser(config, testData);
 
@@ -427,9 +426,9 @@ public class TestJsonlParserPlugin {
 
     // Create test data with LF line endings
     String testData =
-            "{\"id\":1,\"name\":\"Alice\"}\n"
-                    + "{\"id\":2,\"name\":\"Bob\"}\n"
-                    + "{\"id\":3,\"name\":\"Charlie\"}\n";
+        "{\"id\":1,\"name\":\"Alice\"}\n"
+            + "{\"id\":2,\"name\":\"Bob\"}\n"
+            + "{\"id\":3,\"name\":\"Charlie\"}\n";
 
     List<Object[]> records = runParser(config, testData);
 
@@ -465,19 +464,19 @@ public class TestJsonlParserPlugin {
     plugin = new JsonlParserPlugin();
     MockPageOutput output = new MockPageOutput();
     final ByteArrayInputStream inputStream =
-            new ByteArrayInputStream(testData.getBytes(StandardCharsets.UTF_8));
+        new ByteArrayInputStream(testData.getBytes(StandardCharsets.UTF_8));
     final Schema[] schemaRef = new Schema[1];
 
     plugin.transaction(
-            config,
-            new ParserPlugin.Control() {
-              @Override
-              public void run(TaskSource taskSource, Schema schema) {
-                schemaRef[0] = schema;
-                FileInput input = createFileInput(inputStream);
-                plugin.run(taskSource, schema, input, output);
-              }
-            });
+        config,
+        new ParserPlugin.Control() {
+          @Override
+          public void run(TaskSource taskSource, Schema schema) {
+            schemaRef[0] = schema;
+            FileInput input = createFileInput(inputStream);
+            plugin.run(taskSource, schema, input, output);
+          }
+        });
 
     return readRecords(schemaRef[0], output.pages);
   }

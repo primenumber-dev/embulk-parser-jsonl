@@ -155,9 +155,7 @@ public class JsonlParserPlugin implements ParserPlugin {
     final SchemaConfig schemaConfig = getSchemaConfig(task);
     final TimestampFormatter[] timestampFormatters = newTimestampFormatters(task, schemaConfig);
     final Charset charset = Charset.forName(task.getCharset());
-    final Newline newline = Newline.valueOf(task.getNewline());
-    final LineDelimiter lineDelimiter = newlineToLineDelimiter(newline);
-    final LineDecoder decoder = LineDecoder.of(input, charset, lineDelimiter);
+    final LineDecoder decoder = LineDecoder.of(input, charset, null);
     final JsonParser jsonParser = newJsonParser();
     final boolean stopOnInvalidRecord = task.getStopOnInvalidRecord();
 
